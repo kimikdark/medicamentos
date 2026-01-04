@@ -66,6 +66,7 @@ const double maxFatorFonte = 2.0;
 const String collectionMedicamentos = 'medicamentos';
 const String collectionConfiguracoes = 'configuracoes';
 const String collectionHistorico = 'historico';
+const String collectionUsers = 'users';
 
 // ===== ÍCONES DE TIPOS DE MEDICAMENTO =====
 const Map<String, IconData> tipoMedicamentoIcons = {

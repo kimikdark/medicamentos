@@ -33,6 +33,27 @@ Aplicação móvel Android para tracking e gestão de medicação, especialmente
 - ✅ Clicável para abrir a aplicação
 - ✅ Integração com Firebase Cloud Messaging (FCM)
 
+### Autenticação e Gestão de Usuários
+- ✅ **Sistema de Autenticação Firebase Auth**
+  - Login com email e senha
+  - Registro de novos usuários
+  - Recuperação de senha via email
+  - Logout seguro
+- ✅ **Tipos de Usuário**
+  - **Paciente**: Para uso próprio (gerenciar própria medicação)
+  - **Cuidador**: Para gerenciar medicação de outras pessoas
+- ✅ **Perfil de Usuário**
+  - Visualização de informações da conta
+  - Gerenciamento de PIN pessoal
+  - Data de criação e último acesso
+- ✅ **Isolamento de Dados**
+  - Cada usuário tem seus próprios medicamentos
+  - Configurações individualizadas por usuário
+  - Histórico separado por usuário
+- ✅ **Modo Mock/Desenvolvimento**
+  - Possibilidade de usar a app sem Firebase (USE_MOCK_DATA = true)
+  - Facilita testes e desenvolvimento local
+
 ### Área Administrativa (Protegida por PIN)
 Acesso através do botão no topo direito com verificação de PIN de 4 dígitos.
 
@@ -83,8 +104,14 @@ lib/
 ├── main.dart                          # Inicialização da app
 ├── models/                            # Modelos de dados
 │   ├── medicamento.dart              # Modelo de medicamento com estados
-│   └── configuracao.dart             # Modelo de configurações
+│   ├── configuracao.dart             # Modelo de configurações
+│   └── user_model.dart               # Modelo de usuário
 ├── screens/                           # Telas da aplicação
+│   ├── auth/                          # Autenticação
+│   │   ├── auth_wrapper.dart         # Gerencia estado de autenticação
+│   │   ├── login_screen.dart         # Tela de login
+│   │   ├── register_screen.dart      # Tela de registro
+│   │   └── profile_screen.dart       # Perfil do usuário
 │   ├── home/
 │   │   └── home_screen.dart          # Tela principal
 │   ├── detalhes/
@@ -100,8 +127,8 @@ lib/
 │   └── formulario/
 │       └── medicamento_form_screen.dart
 ├── services/                          # Lógica de negócio
-│   ├── firebase_service.dart         # CRUD Firestore
-│   ├── auth_service.dart             # Gestão de PIN
+│   ├── firebase_service.dart         # CRUD Firestore (isolado por usuário)
+│   ├── auth_service.dart             # Firebase Auth + PIN
 │   ├── notification_service.dart     # Notificações locais e FCM
 │   ├── sms_service.dart              # Envio de SMS
 │   └── estado_service.dart           # Transições automáticas
@@ -117,13 +144,17 @@ lib/
 ## 🔥 Firebase
 
 ### Collections Firestore
-- **medicamentos**: Armazena todos os medicamentos
-- **configuracoes**: Armazena configurações da app (PIN, timers, cuidadores)
-- **historico**: Registro de todas as mudanças de estado
+- **users**: Armazena dados dos usuários (perfil, role, PIN)
+  - **{userId}/medicamentos**: Medicamentos de cada usuário (isolados)
+  - **{userId}/configuracoes**: Configurações de cada usuário
+  - **{userId}/historico**: Histórico de cada usuário
+- **medicamentos** (legacy): Mantido para compatibilidade com modo mock
+- **configuracoes** (legacy): Mantido para compatibilidade com modo mock
+- **historico** (legacy): Mantido para compatibilidade com modo mock
 
 ### Serviços Utilizados
-- ✅ **Firestore**: Database em tempo real
-- ✅ **Firebase Auth**: (Preparado para autenticação futura)
+- ✅ **Firestore**: Database em tempo real com dados isolados por usuário
+- ✅ **Firebase Auth**: Autenticação completa com email/senha
 - ✅ **Firebase Cloud Messaging (FCM)**: Notificações push
 
 ## 📦 Dependências Principais
@@ -204,7 +235,13 @@ flutter build apk --release
 
 ## 📝 Próximos Passos / TODOs
 
-- [ ] Implementar autenticação real com Firebase Auth (múltiplos usuários)
+- [x] **Implementar autenticação real com Firebase Auth (múltiplos usuários)** ✅
+  - Sistema completo de registro e login
+  - Suporte para múltiplos tipos de usuário (Paciente e Cuidador)
+  - Perfil de usuário com gerenciamento de PIN
+  - Dados isolados por usuário (cada usuário vê apenas seus medicamentos)
+  - Recuperação de senha via email
+- [ ] Implementar vinculação entre cuidadores e pacientes
 - [ ] Adicionar fotos aos medicamentos
 - [ ] Implementar repetição semanal/mensal completa
 - [ ] Adicionar gráficos de adesão ao tratamento

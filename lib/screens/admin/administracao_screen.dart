@@ -107,26 +107,52 @@ class _AdministracaoScreenState extends State<AdministracaoScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'PIN de Acesso',
-                  style: TextStyle(
-                    fontSize: fontSizeMedium,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Segurança por PIN',
+                      style: TextStyle(
+                        fontSize: fontSizeMedium,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Switch(
+                      value: _config!.pinEnabled,
+                      onChanged: (value) {
+                        if (value) {
+                          _mostrarDialogConfigurarPin();
+                        } else {
+                          setState(() {
+                            _config = _config!.copyWith(pinEnabled: false);
+                          });
+                        }
+                      },
+                      activeTrackColor: brandGreen,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: smallPadding),
-                TextField(
-                  controller: _pinController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 4,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'PIN (4 dígitos)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
+                Text(
+                  _config!.pinEnabled
+                      ? 'PIN ativado - acesso à área administrativa protegido'
+                      : 'PIN desativado - acesso livre à área administrativa',
+                  style: TextStyle(
+                    fontSize: fontSizeSmall,
+                    color: Colors.grey[600],
                   ),
-                  style: const TextStyle(fontSize: fontSizeMedium),
                 ),
+                if (_config!.pinEnabled) ...[
+                  const SizedBox(height: defaultPadding),
+                  OutlinedButton.icon(
+                    onPressed: _mostrarDialogConfigurarPin,
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Alterar PIN'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: brandGreen,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -239,6 +265,108 @@ class _AdministracaoScreenState extends State<AdministracaoScreen> {
     );
   }
 
+  Future<void> _mostrarDialogConfigurarPin() async {
+    final pinController = TextEditingController(text: _config?.pin ?? '1234');
+    final confirmPinController = TextEditingController();
+
+    final resultado = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Configurar PIN',
+            style: TextStyle(fontSize: fontSizeLarge, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Digite um PIN de 4 dígitos para proteger o acesso à área administrativa.',
+                  style: TextStyle(fontSize: fontSizeMedium),
+                ),
+                const SizedBox(height: defaultPadding),
+                TextField(
+                  controller: pinController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Novo PIN (4 dígitos)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  style: const TextStyle(fontSize: fontSizeMedium),
+                ),
+                const SizedBox(height: defaultPadding),
+                TextField(
+                  controller: confirmPinController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirmar PIN',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  style: const TextStyle(fontSize: fontSizeMedium),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(null);
+              },
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final pin = pinController.text;
+                final confirmPin = confirmPinController.text;
+
+                if (!isValidPin(pin)) {
+                  showMessage(context, 'PIN deve ter 4 dígitos', isError: true);
+                  return;
+                }
+
+                if (pin != confirmPin) {
+                  showMessage(context, 'Os PINs não coincidem', isError: true);
+                  return;
+                }
+
+                Navigator.of(context).pop(pin);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: brandGreen,
+              ),
+              child: const Text(
+                'Confirmar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (resultado != null) {
+      setState(() {
+        _config = _config!.copyWith(
+          pin: resultado,
+          pinEnabled: true,
+        );
+        _pinController.text = resultado;
+      });
+
+      if (mounted) {
+        showMessage(context, 'PIN configurado. Não esqueça de guardar as configurações.');
+      }
+    }
+  }
+
   Future<void> _salvar() async {
     // Valida PIN
     if (!isValidPin(_pinController.text)) {
@@ -265,6 +393,7 @@ class _AdministracaoScreenState extends State<AdministracaoScreen> {
 
     final novaConfig = _config!.copyWith(
       pin: _pinController.text,
+      pinEnabled: _config!.pinEnabled,
       minutosParaFinalizado: minFinalizado,
       minutosParaNaoTomado: minNaoTomado,
       numerosCuidadores: numeros,

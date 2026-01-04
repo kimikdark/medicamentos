@@ -47,10 +47,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 /// AppBar especial para tela principal com logo
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onAdminTap;
+  final VoidCallback? onProfileTap;
 
   const HomeAppBar({
     Key? key,
     required this.onAdminTap,
+    this.onProfileTap,
   }) : super(key: key);
 
   @override
@@ -71,6 +73,16 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: [
+        if (onProfileTap != null)
+          IconButton(
+            icon: const Icon(
+              Icons.account_circle,
+              color: Colors.white,
+              size: 32,
+            ),
+            onPressed: onProfileTap,
+            tooltip: 'Perfil',
+          ),
         IconButton(
           icon: const Icon(
             Icons.admin_panel_settings,

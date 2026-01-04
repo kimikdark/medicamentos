@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../models/medicamento.dart';
 import '../../services/firebase_service.dart';
-import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/medicamento_card.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../admin/pin_verification_screen.dart';
 import '../admin/admin_main_screen.dart';
+import '../auth/profile_screen.dart';
 import '../detalhes/detalhes_medicamento_screen.dart';
+import '../../main.dart' show USE_MOCK_DATA;
 
 /// Tela principal da aplicação
 class HomeScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: HomeAppBar(
         onAdminTap: _navegarParaAdmin,
+        onProfileTap: USE_MOCK_DATA ? null : _navegarParaPerfil,
       ),
       body: StreamBuilder<List<Medicamento>>(
         stream: _firebaseService.getMedicamentosStream(),
@@ -260,15 +262,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Navega para área administrativa
   Future<void> _navegarParaAdmin() async {
-    // Verifica PIN
-    final autenticado = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const PinVerificationScreen(),
-      ),
-    );
+    // Verifica se PIN está habilitado
+    final config = await _firebaseService.getConfiguracoes();
 
-    if (autenticado == true) {
+    bool autenticado = false;
+
+    if (config.pinEnabled) {
+      // Verifica PIN
+      final resultado = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PinVerificationScreen(),
+        ),
+      );
+      autenticado = resultado == true;
+    } else {
+      // PIN desabilitado, acesso direto
+      autenticado = true;
+    }
+
+    if (autenticado) {
       // Navega para a área administrativa
       if (mounted) {
         Navigator.push(
@@ -279,6 +292,16 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+  }
+
+  /// Navega para tela de perfil do usuário
+  void _navegarParaPerfil() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProfileScreen(),
+      ),
+    );
   }
 }
 

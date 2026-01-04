@@ -3,6 +3,7 @@
 class Configuracao {
   String? id;
   String pin;
+  bool pinEnabled; // PIN security enabled/disabled
   int minutosParaFinalizado;
   int minutosParaNaoTomado;
   List<String> numerosCuidadores;
@@ -15,6 +16,7 @@ class Configuracao {
   Configuracao({
     this.id,
     required this.pin,
+    this.pinEnabled = false, // Default: PIN disabled
     this.minutosParaFinalizado = 10,
     this.minutosParaNaoTomado = 60,
     this.numerosCuidadores = const [],
@@ -27,6 +29,7 @@ class Configuracao {
   Map<String, dynamic> toMap() {
     return {
       'pin': pin,
+      'pinEnabled': pinEnabled,
       'minutosParaFinalizado': minutosParaFinalizado,
       'minutosParaNaoTomado': minutosParaNaoTomado,
       'numerosCuidadores': numerosCuidadores,
@@ -41,6 +44,7 @@ class Configuracao {
     return Configuracao(
       id: id,
       pin: map['pin'] ?? '1234',
+      pinEnabled: map['pinEnabled'] ?? false,
       minutosParaFinalizado: map['minutosParaFinalizado'] ?? 10,
       minutosParaNaoTomado: map['minutosParaNaoTomado'] ?? 60,
       numerosCuidadores: map['numerosCuidadores'] != null
@@ -56,6 +60,7 @@ class Configuracao {
   Configuracao copyWith({
     String? id,
     String? pin,
+    bool? pinEnabled,
     int? minutosParaFinalizado,
     int? minutosParaNaoTomado,
     List<String>? numerosCuidadores,
@@ -66,6 +71,7 @@ class Configuracao {
     return Configuracao(
       id: id ?? this.id,
       pin: pin ?? this.pin,
+      pinEnabled: pinEnabled ?? this.pinEnabled,
       minutosParaFinalizado: minutosParaFinalizado ?? this.minutosParaFinalizado,
       minutosParaNaoTomado: minutosParaNaoTomado ?? this.minutosParaNaoTomado,
       numerosCuidadores: numerosCuidadores ?? this.numerosCuidadores,
@@ -79,6 +85,7 @@ class Configuracao {
   factory Configuracao.defaultConfig() {
     return Configuracao(
       pin: '1234',
+      pinEnabled: false,
       minutosParaFinalizado: 10,
       minutosParaNaoTomado: 60,
       numerosCuidadores: [],

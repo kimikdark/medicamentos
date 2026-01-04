@@ -6,6 +6,7 @@ import '../models/configuracao.dart';
 import '../utils/constants.dart';
 import '../main.dart' show USE_MOCK_DATA;
 import 'mock_firebase_service.dart';
+import 'auth_service.dart';
 
 /// Serviço singleton para gerenciar Firebase
 class FirebaseService {
@@ -15,9 +16,16 @@ class FirebaseService {
 
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
   final MockFirebaseService _mockService = MockFirebaseService();
+  final AuthService _authService = AuthService();
 
   bool _initialized = false;
   bool get initialized => _initialized;
+
+  /// Retorna o UID do usuário atual ou 'default' para modo mock/sem auth
+  String get _currentUserId {
+    if (USE_MOCK_DATA) return 'default';
+    return _authService.currentUser?.uid ?? 'default';
+  }
 
   /// Inicializa o Firebase
   Future<void> initialize({FirebaseOptions? options}) async {
@@ -57,12 +65,14 @@ class FirebaseService {
 
   // ===== MEDICAMENTOS =====
 
-  /// Stream de medicamentos em tempo real
+  /// Stream de medicamentos em tempo real (por usuário)
   Stream<List<Medicamento>> getMedicamentosStream() {
     if (USE_MOCK_DATA) {
       return _mockService.getMedicamentosStream();
     }
     return _firestore
+        .collection(collectionUsers)
+        .doc(_currentUserId)
         .collection(collectionMedicamentos)
         .orderBy('horaToma')
         .snapshots()
@@ -79,6 +89,8 @@ class FirebaseService {
 
     try {
       final snapshot = await _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
           .collection(collectionMedicamentos)
           .orderBy('horaToma')
           .get();
@@ -100,6 +112,8 @@ class FirebaseService {
 
     try {
       final docRef = await _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
           .collection(collectionMedicamentos)
           .add(medicamento.toMap());
 
@@ -121,6 +135,8 @@ class FirebaseService {
 
     try {
       await _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
           .collection(collectionMedicamentos)
           .doc(medicamento.id)
           .update(medicamento.toMap());
@@ -140,6 +156,8 @@ class FirebaseService {
     }
     try {
       await _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
           .collection(collectionMedicamentos)
           .doc(medicamentoId)
           .delete();
@@ -166,11 +184,14 @@ class FirebaseService {
         'dataUltimaMudancaEstado': Timestamp.now(),
       };
 
+      // Se mudou para "tomado", salva data da tomada
       if (novoEstado == EstadoMedicamento.tomado) {
         updates['dataTomada'] = Timestamp.now();
       }
 
       await _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
           .collection(collectionMedicamentos)
           .doc(medicamentoId)
           .update(updates);
@@ -185,13 +206,15 @@ class FirebaseService {
 
   // ===== CONFIGURAÇÕES =====
 
-  /// Obtém configurações
+  /// Obtém configurações (por usuário)
   Future<Configuracao> getConfiguracoes() async {
     if (USE_MOCK_DATA) {
       return _mockService.getConfiguracoes();
     }
     try {
       final snapshot = await _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
           .collection(collectionConfiguracoes)
           .doc('app_config')
           .get();
@@ -211,13 +234,15 @@ class FirebaseService {
     }
   }
 
-  /// Salva configurações
+  /// Salva configurações (por usuário)
   Future<bool> salvarConfiguracoes(Configuracao config) async {
     if (USE_MOCK_DATA) {
       return _mockService.salvarConfiguracoes(config);
     }
     try {
       await _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
           .collection(collectionConfiguracoes)
           .doc('app_config')
           .set(config.toMap());
@@ -232,13 +257,17 @@ class FirebaseService {
 
   // ===== HISTÓRICO =====
 
-  /// Adiciona entrada ao histórico
+  /// Adiciona entrada ao histórico (por usuário)
   Future<void> adicionarAoHistorico(Medicamento medicamento) async {
     if (USE_MOCK_DATA) {
       return _mockService.adicionarAoHistorico(medicamento);
     }
     try {
-      await _firestore.collection(collectionHistorico).add({
+      await _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
+          .collection(collectionHistorico)
+          .add({
         'medicamentoId': medicamento.id,
         'nome': medicamento.nome,
         'estado': medicamento.estado.index,
@@ -253,7 +282,7 @@ class FirebaseService {
     }
   }
 
-  /// Obtém histórico ordenado
+  /// Obtém histórico ordenado (por usuário)
   Future<List<Map<String, dynamic>>> getHistorico({
     bool ordenarCrescente = false,
   }) async {
@@ -261,7 +290,10 @@ class FirebaseService {
       return _mockService.getHistorico(ordenarCrescente: ordenarCrescente);
     }
     try {
-      Query query = _firestore.collection(collectionHistorico);
+      Query query = _firestore
+          .collection(collectionUsers)
+          .doc(_currentUserId)
+          .collection(collectionHistorico);
 
       if (ordenarCrescente) {
         query = query.orderBy('timestamp', descending: false);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/firebase_init_service.dart';
+import '../../services/firebase_init_service.dart';
 
 /// Ferramenta administrativa para gerenciar o Firestore
 /// Apenas para desenvolvimento/debug

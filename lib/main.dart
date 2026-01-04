@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/estado_service.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/auth/auth_wrapper.dart';
 import 'utils/constants.dart';
 
 // ⚠️ MODO DE DESENVOLVIMENTO
@@ -32,32 +33,47 @@ void main() async {
     if (USE_MOCK_DATA) {
       debugPrint('🔶 MODO MOCK ATIVO - Usando dados locais (sem Firebase)');
       debugPrint('🔶 Para usar Firebase real, mude USE_MOCK_DATA para false');
+
+      // Inicializa apenas SharedPreferences para o AuthService
+      await AuthService().initialize();
     } else {
       debugPrint('🔷 MODO FIREBASE ATIVO - Conectando ao Firebase...');
+
+      // 1. Primeiro inicializa o Firebase
       await FirebaseService().initialize(
         options: DefaultFirebaseOptions.currentPlatform,
       );
 
-      // Verificar e inicializar banco de dados se estiver vazio
-      final initService = FirebaseInitService();
-      final isEmpty = await initService.isDatabaseEmpty();
-      if (isEmpty) {
-        debugPrint('📦 Banco de dados vazio, criando estrutura inicial...');
-        await initService.initializeDatabase();
-      } else {
-        debugPrint('✓ Banco de dados já contém dados');
+      debugPrint('✓ Firebase inicializado');
+
+      // 2. Depois inicializa o AuthService (que agora pode acessar Firebase)
+      await AuthService().initialize();
+
+      debugPrint('✓ AuthService inicializado');
+
+      // 3. Verificar e inicializar banco de dados se estiver vazio (apenas se não há usuário logado)
+      if (AuthService().currentUser == null) {
+        final initService = FirebaseInitService();
+        final isEmpty = await initService.isDatabaseEmpty();
+        if (isEmpty) {
+          debugPrint('📦 Banco de dados vazio, criando estrutura inicial...');
+          await initService.initializeDatabase();
+        } else {
+          debugPrint('✓ Banco de dados já contém dados');
+        }
       }
     }
-
-    await AuthService().initialize();
 
     // Notificações e estado service não funcionam no web
     if (!kIsWeb && !USE_MOCK_DATA) {
       await NotificationService().initialize();
       EstadoService().iniciar();
     }
-  } catch (e) {
-    debugPrint('Erro ao inicializar serviços: $e');
+
+    debugPrint('✅ Todos os serviços inicializados com sucesso');
+  } catch (e, stackTrace) {
+    debugPrint('❌ Erro ao inicializar serviços: $e');
+    debugPrint('Stack trace: $stackTrace');
     if (!USE_MOCK_DATA) {
       debugPrint('💡 Dica: Tente mudar USE_MOCK_DATA para true para testar sem Firebase');
     }
@@ -114,7 +130,7 @@ class MedicamentosApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const AuthWrapper(),
     );
   }
 }
