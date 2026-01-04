@@ -1,135 +1,120 @@
 import 'package:flutter/material.dart';
-import 'package:medicamentos/tela_familiar.dart';
-import 'package:medicamentos/models/medicamento.dart';
-import 'package:medicamentos/tela_detalhes_medicamento.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'firebase_options.dart';
+import 'services/firebase_service.dart';
+import 'services/firebase_init_service.dart';
+import 'services/auth_service.dart';
+import 'services/notification_service.dart';
+import 'services/estado_service.dart';
+import 'screens/home/home_screen.dart';
+import 'utils/constants.dart';
 
-void main() {
-  runApp(const MyApp());
+// ⚠️ MODO DE DESENVOLVIMENTO
+// true = Usa dados mock (não precisa Firebase)
+// false = Usa Firebase real (precisa estar configurado)
+const bool USE_MOCK_DATA = false;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Configurar orientação (apenas retrato para facilitar uso por idosos)
+  // Não aplicar no web
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
+
+  // Inicializar serviços
+  try {
+    if (USE_MOCK_DATA) {
+      debugPrint('🔶 MODO MOCK ATIVO - Usando dados locais (sem Firebase)');
+      debugPrint('🔶 Para usar Firebase real, mude USE_MOCK_DATA para false');
+    } else {
+      debugPrint('🔷 MODO FIREBASE ATIVO - Conectando ao Firebase...');
+      await FirebaseService().initialize(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      // Verificar e inicializar banco de dados se estiver vazio
+      final initService = FirebaseInitService();
+      final isEmpty = await initService.isDatabaseEmpty();
+      if (isEmpty) {
+        debugPrint('📦 Banco de dados vazio, criando estrutura inicial...');
+        await initService.initializeDatabase();
+      } else {
+        debugPrint('✓ Banco de dados já contém dados');
+      }
+    }
+
+    await AuthService().initialize();
+
+    // Notificações e estado service não funcionam no web
+    if (!kIsWeb && !USE_MOCK_DATA) {
+      await NotificationService().initialize();
+      EstadoService().iniciar();
+    }
+  } catch (e) {
+    debugPrint('Erro ao inicializar serviços: $e');
+    if (!USE_MOCK_DATA) {
+      debugPrint('💡 Dica: Tente mudar USE_MOCK_DATA para true para testar sem Firebase');
+    }
+  }
+
+  runApp(const MedicamentosApp());
 }
 
-// --- Cores da App ---
-const Color brandGreen = Color(0xFF82CF40);
-const Color brandBlue = Color(0xFF2D9CDB);
-const Color brandWhite = Colors.white;
-const Color navbarContrastColor = Color(0xFF388E3C);
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MedicamentosApp extends StatelessWidget {
+  const MedicamentosApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Gestor de Medicação',
+      title: appTitle,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: brandGreen,
           primary: brandGreen,
           secondary: brandBlue,
-          background: brandWhite,
         ),
         useMaterial3: true,
-      ),
-      home: const TelaPrincipal(title: 'A Minha Medicação'),
-    );
-  }
-}
 
-class TelaPrincipal extends StatefulWidget {
-  const TelaPrincipal({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<TelaPrincipal> createState() => _TelaPrincipalState();
-}
-
-class _TelaPrincipalState extends State<TelaPrincipal> {
-  // A lista agora é partilhada e atualizada a partir da tela familiar
-  List<Medicamento> _medicamentos = [
-    Medicamento(
-      name: 'Ben-u-ron',
-      dose: '1g',
-      times: [const TimeOfDay(hour: 8, minute: 0), const TimeOfDay(hour: 16, minute: 0)],
-      instructions: 'Tomar após o pequeno-almoço',
-    ),
-    Medicamento(
-      name: 'Brufen',
-      dose: '400mg',
-      times: [const TimeOfDay(hour: 12, minute: 0), const TimeOfDay(hour: 20, minute: 0)],
-      instructions: 'Tomar após o almoço',
-    ),
-  ];
-
-  void _tomarMedicamento(int index) {
-    setState(() {
-      _medicamentos[index].isTaken = true;
-    });
-  }
-
-  void _navegarParaDetalhes(Medicamento medicamento) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TelaDetalhesMedicamento(medicamento: medicamento),
-      ),
-    );
-  }
-
-  // Navega para a tela familiar e atualiza a lista de medicamentos ao voltar
-  void _navegarParaModoFamiliar() async {
-    final List<Medicamento>? listaAtualizada = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TelaFamiliar()),
-    );
-
-    if (listaAtualizada != null) {
-      setState(() {
-        _medicamentos = listaAtualizada;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: navbarContrastColor,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Image.asset('imagens/logo.png'),
+        // Tema de texto base (será multiplicado pelo fator de acessibilidade)
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(fontSize: fontSizeXLarge),
+          displayMedium: TextStyle(fontSize: fontSizeLarge),
+          bodyLarge: TextStyle(fontSize: fontSizeMedium),
+          bodyMedium: TextStyle(fontSize: fontSizeMedium),
+          labelLarge: TextStyle(fontSize: fontSizeMedium),
         ),
-        title: Text(widget.title, style: const TextStyle(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.family_restroom, color: Colors.white, size: 30),
-            onPressed: _navegarParaModoFamiliar,
-          ),
-        ],
-      ),
-      body: ListView.builder(
-        itemCount: _medicamentos.length,
-        itemBuilder: (context, index) {
-          final medicamento = _medicamentos[index];
-          return Card(
-            margin: const EdgeInsets.all(8.0),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16.0),
-              title: Text(medicamento.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              subtitle: Text('Próxima toma: ${medicamento.timesAsString.first}', style: const TextStyle(fontSize: 18)),
-              trailing: ElevatedButton(
-                onPressed: medicamento.isTaken ? null : () => _tomarMedicamento(index),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: brandGreen,
-                  disabledBackgroundColor: navbarContrastColor,
-                ),
-                child: Text(medicamento.isTaken ? '✓ Tomado' : 'Tomei', style: const TextStyle(color: Colors.white, fontSize: 18)),
-              ),
-              onTap: () => _navegarParaDetalhes(medicamento),
+
+        // Tema de botões (grandes para facilitar toque)
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(buttonMinWidth, buttonMinHeight),
+            textStyle: const TextStyle(fontSize: fontSizeMedium),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          );
-        },
+          ),
+        ),
+
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: brandGreen,
+          foregroundColor: Colors.white,
+        ),
+
+        cardTheme: CardThemeData(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
+      home: const HomeScreen(),
     );
   }
 }
