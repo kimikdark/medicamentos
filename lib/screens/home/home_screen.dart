@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/medicamento.dart';
 import '../../services/firebase_service.dart';
+import '../../services/estado_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/medicamento_card.dart';
@@ -142,14 +144,31 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _criarEntradaFinalizada,
-        backgroundColor: brandGreen,
-        icon: const Icon(Icons.add, size: 32),
-        label: const Text(
-          'Adicionar',
-          style: TextStyle(fontSize: fontSizeMedium),
-        ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Botão de debug (apenas em modo debug)
+          if (kDebugMode) ...[
+            FloatingActionButton(
+              heroTag: 'debugBtn',
+              onPressed: _forcarVerificacaoEstados,
+              backgroundColor: Colors.orange,
+              child: const Icon(Icons.refresh, size: 24),
+            ),
+            const SizedBox(height: 10),
+          ],
+          // Botão principal
+          FloatingActionButton.extended(
+            heroTag: 'addBtn',
+            onPressed: _criarEntradaFinalizada,
+            backgroundColor: brandGreen,
+            icon: const Icon(Icons.add, size: 32),
+            label: const Text(
+              'Adicionar',
+              style: TextStyle(fontSize: fontSizeMedium),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -198,7 +217,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Cria entrada já finalizada (botão +)
   Future<void> _criarEntradaFinalizada() async {
-    final controller = TextEditingController();
+    final nomeController = TextEditingController();
+    final dosagemController = TextEditingController();
 
     final resultado = await showDialog<bool>(
       context: context,
@@ -213,13 +233,23 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: controller,
+              controller: nomeController,
               decoration: const InputDecoration(
                 labelText: 'Nome do medicamento',
                 border: OutlineInputBorder(),
               ),
               style: const TextStyle(fontSize: fontSizeMedium),
               autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: dosagemController,
+              decoration: const InputDecoration(
+                labelText: 'Dosagem (opcional)',
+                border: OutlineInputBorder(),
+                hintText: 'Ex: 500mg, 2 comprimidos',
+              ),
+              style: const TextStyle(fontSize: fontSizeMedium),
             ),
           ],
         ),
@@ -236,9 +266,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (resultado == true && controller.text.isNotEmpty) {
+    if (resultado == true && nomeController.text.isNotEmpty) {
       final novoMedicamento = Medicamento(
-        nome: controller.text,
+        nome: nomeController.text,
+        dose: dosagemController.text.isNotEmpty ? dosagemController.text : null,
         horaToma: TimeOfDay.now(),
         estado: EstadoMedicamento.finalizado,
         dataTomada: DateTime.now(),
@@ -302,6 +333,24 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => const ProfileScreen(),
       ),
     );
+  }
+
+  /// Força verificação de estados (DEBUG)
+  Future<void> _forcarVerificacaoEstados() async {
+    if (kDebugMode) {
+      debugPrint('🔧 DEBUG: Forçando verificação de estados...');
+      await EstadoService().verificarAgora();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Verificação de estados executada! Veja o console.'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      debugPrint('🔧 DEBUG: Verificação concluída');
+    }
   }
 }
 

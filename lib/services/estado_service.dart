@@ -44,8 +44,12 @@ class EstadoService {
   /// Verifica e aplica transições de estado necessárias
   Future<void> _verificarTransicoes() async {
     try {
+      debugPrint('🔄 Verificando transições de estados...');
       final medicamentos = await _firebaseService.getMedicamentos();
       final config = await _firebaseService.getConfiguracoes();
+
+      debugPrint('📋 ${medicamentos.length} medicamento(s) encontrado(s)');
+      debugPrint('⚙️ Config: Finalizado após ${config.minutosParaFinalizado} minutos');
 
       for (final medicamento in medicamentos) {
         await _verificarMedicamento(medicamento, config);
@@ -62,14 +66,22 @@ class EstadoService {
   ) async {
     final agora = DateTime.now();
 
+    debugPrint('🔍 Verificando: ${medicamento.nome} [${medicamento.estadoString}]');
+
     // Transição: TOMADO -> FINALIZADO
-    if (medicamento.estado == EstadoMedicamento.tomado &&
-        medicamento.dataTomada != null) {
+    // Após minutosParaFinalizado desde quando foi marcado como tomado (dataTomada)
+    if (medicamento.estado == EstadoMedicamento.tomado && medicamento.dataTomada != null) {
       final minutosDesdeToamda = agora.difference(medicamento.dataTomada!).inMinutes;
+
+      debugPrint(
+          '${medicamento.nome} [TOMADO]: '
+          'DataTomada=${medicamento.dataTomada!.hour}:${medicamento.dataTomada!.minute}, '
+          'MinutosDesdeToamda=$minutosDesdeToamda, '
+          'LimiteParaFinalizado=${config.minutosParaFinalizado}min');
 
       if (minutosDesdeToamda >= config.minutosParaFinalizado) {
         debugPrint(
-            '${medicamento.nome}: Transição TOMADO -> FINALIZADO após $minutosDesdeToamda minutos');
+            '✅ ${medicamento.nome}: Transição TOMADO -> FINALIZADO (passaram $minutosDesdeToamda minutos desde que foi tomado)');
 
         await _firebaseService.atualizarEstadoMedicamento(
           medicamento.id!,
@@ -79,41 +91,6 @@ class EstadoService {
         await _firebaseService.adicionarAoHistorico(
           medicamento.copyWith(estado: EstadoMedicamento.finalizado),
         );
-      }
-    }
-
-    // Transição: POR TOMAR -> NÃO TOMADO
-    if (medicamento.estado == EstadoMedicamento.porTomar) {
-      final horaToma = DateTime(
-        agora.year,
-        agora.month,
-        agora.day,
-        medicamento.horaToma.hour,
-        medicamento.horaToma.minute,
-      );
-
-      // Verifica se já passou o tempo limite desde a hora da toma
-      if (agora.isAfter(horaToma)) {
-        final minutosAtraso = agora.difference(horaToma).inMinutes;
-
-        if (minutosAtraso >= config.minutosParaNaoTomado) {
-          debugPrint(
-              '${medicamento.nome}: Transição POR TOMAR -> NÃO TOMADO após $minutosAtraso minutos de atraso');
-
-          await _firebaseService.atualizarEstadoMedicamento(
-            medicamento.id!,
-            EstadoMedicamento.naoTomado,
-          );
-
-          await _firebaseService.adicionarAoHistorico(
-            medicamento.copyWith(estado: EstadoMedicamento.naoTomado),
-          );
-
-          // Envia SMS aos cuidadores
-          if (config.numerosCuidadores.isNotEmpty) {
-            await _enviarAlertaCuidadores(medicamento, config.numerosCuidadores);
-          }
-        }
       }
     }
   }

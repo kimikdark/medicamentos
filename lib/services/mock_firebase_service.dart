@@ -136,9 +136,11 @@ class MockFirebaseService {
       'id': m.id,
       'medicamentoId': m.id,
       'nome': m.nome,
+      'dose': m.dose,
       'estado': m.estado.index,
       'estadoString': m.estadoString,
       'horaToma': m.horaTomaString,
+      'notas': m.notas,
       'timestamp': DateTime.now(),
     }).toList();
 

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'firebase_options.dart';
 import 'services/firebase_service.dart';
 import 'services/firebase_init_service.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/estado_service.dart';
-import 'screens/home/home_screen.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'utils/constants.dart';
 
@@ -65,9 +64,13 @@ void main() async {
     }
 
     // Notificações e estado service não funcionam no web
-    if (!kIsWeb && !USE_MOCK_DATA) {
-      await NotificationService().initialize();
+    if (!kIsWeb) {
+      if (!USE_MOCK_DATA) {
+        await NotificationService().initialize();
+      }
+      // EstadoService funciona tanto em modo mock quanto real (não-web)
       EstadoService().iniciar();
+      debugPrint('✓ EstadoService iniciado');
     }
 
     debugPrint('✅ Todos os serviços inicializados com sucesso');

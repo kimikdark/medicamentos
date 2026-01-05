@@ -18,14 +18,13 @@ Aplicação móvel Android para tracking e gestão de medicação, especialmente
 ### Sistema de Estados
 - **Por Tomar** (verde): Medicamento pendente
 - **Tomado** (azul): Confirmado pelo usuário
-- **Finalizado** (cinza): Após X minutos de "Tomado" (configurável, padrão 10min)
-- **Não Tomado** (vermelho): Após Y minutos sem confirmação (configurável, padrão 60min)
+- **Finalizado** (cinza): Após X minutos de ser marcado como tomado (configurável, padrão 10min)
+- **Não Tomado** (vermelho): Estado manual - medicamento pode ser marcado manualmente como não tomado
 - **Cancelado** (preto): Cancelado manualmente
 
 ### Transições Automáticas
-- ✅ **Tomado → Finalizado**: Após tempo configurável (padrão 10 minutos)
-- ✅ **Por Tomar → Não Tomado**: Após tempo configurável (padrão 60 minutos)
-- ✅ **Alerta SMS**: Quando medicamento fica "Não Tomado", envia SMS para cuidadores
+- ✅ **Tomado → Finalizado**: Após tempo configurável (padrão 10 minutos) desde o momento em que foi marcado como tomado
+- 📌 **Medicamentos "Por Tomar" permanecem visíveis**: Não mudam automaticamente de estado se não forem tomados
 
 ### Notificações
 - ✅ Notificações locais na hora de cada toma

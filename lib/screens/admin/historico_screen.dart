@@ -202,10 +202,12 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
 
   Widget _buildHistoricoCard(Map<String, dynamic> item) {
     final nome = item['nome'] as String? ?? '';
+    final dose = item['dose'] as String?;
     final estadoIndex = item['estado'] as int? ?? 0;
     final estado = EstadoMedicamento.values[estadoIndex];
     final estadoNome = item['estadoString'] as String? ?? '';
     final horaToma = item['horaToma'] as String? ?? '';
+    final notas = item['notas'] as String?;
     final timestamp = item['timestamp'];
 
     String dataFormatada = '';
@@ -217,6 +219,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: smallPadding),
       child: ListTile(
+        onTap: () => _mostrarDetalhesHistorico(item),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -246,6 +249,11 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 color: _getEstadoColor(estado),
               ),
             ),
+            if (dose != null && dose.isNotEmpty)
+              Text(
+                'Dosagem: $dose',
+                style: const TextStyle(fontSize: fontSizeSmall),
+              ),
             if (horaToma.isNotEmpty)
               Text(
                 'Hora: $horaToma',
@@ -261,6 +269,100 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
               ),
           ],
         ),
+        trailing: const Icon(Icons.chevron_right),
+      ),
+    );
+  }
+
+  void _mostrarDetalhesHistorico(Map<String, dynamic> item) {
+    final nome = item['nome'] as String? ?? '';
+    final dose = item['dose'] as String?;
+    final estadoIndex = item['estado'] as int? ?? 0;
+    final estado = EstadoMedicamento.values[estadoIndex];
+    final estadoNome = item['estadoString'] as String? ?? '';
+    final horaToma = item['horaToma'] as String? ?? '';
+    final notas = item['notas'] as String?;
+    final timestamp = item['timestamp'];
+
+    String dataFormatada = '';
+    if (timestamp != null) {
+      final data = timestamp.toDate();
+      dataFormatada = formatDateTime(data);
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          nome,
+          style: const TextStyle(fontSize: fontSizeLarge),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetalheRow('Estado', estadoNome, _getEstadoColor(estado)),
+              if (dose != null && dose.isNotEmpty)
+                _buildDetalheRow('Dosagem', dose),
+              if (horaToma.isNotEmpty)
+                _buildDetalheRow('Hora de Toma', horaToma),
+              if (dataFormatada.isNotEmpty)
+                _buildDetalheRow('Data/Hora', dataFormatada),
+              if (notas != null && notas.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'Notas:',
+                  style: TextStyle(
+                    fontSize: fontSizeMedium,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  notas,
+                  style: const TextStyle(fontSize: fontSizeMedium),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar', style: TextStyle(fontSize: fontSizeMedium)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetalheRow(String label, String value, [Color? valueColor]) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontSize: fontSizeMedium,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: fontSizeMedium,
+                color: valueColor,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

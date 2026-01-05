@@ -270,9 +270,11 @@ class FirebaseService {
           .add({
         'medicamentoId': medicamento.id,
         'nome': medicamento.nome,
+        'dose': medicamento.dose,
         'estado': medicamento.estado.index,
         'estadoString': medicamento.estadoString,
         'horaToma': medicamento.horaTomaString,
+        'notas': medicamento.notas,
         'timestamp': Timestamp.now(),
       });
 

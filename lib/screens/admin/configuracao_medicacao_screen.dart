@@ -42,9 +42,11 @@ class _ConfiguracaoMedicacaoScreenState
 
           final medicamentos = snapshot.data ?? [];
 
-          // Filtra apenas "por tomar" para administração
+          // Filtra: "por tomar" OU medicamentos com repetição ativa (independente do estado)
           final medicamentosPorTomar = medicamentos
-              .where((m) => m.estado == EstadoMedicamento.porTomar)
+              .where((m) =>
+                  m.estado == EstadoMedicamento.porTomar ||
+                  m.frequenciaRepeticao != FrequenciaRepeticao.nenhuma)
               .toList();
 
           if (medicamentosPorTomar.isEmpty) {
